@@ -1,0 +1,90 @@
+#!/usr/bin/python
+"""
+Copyright(C) 2014, Eric Leblond
+Written by Eric Leblond <eric@regit.org>
+
+DOM is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Scirius is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with DOM.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import argparse
+import logging
+import os
+import time
+import simplejson as json
+from subprocess import call
+
+IPSET = 'ipset'
+
+have_daemon = True
+try:
+    import daemon
+except:
+    logging.warning("No daemon support available, install python-daemon if feature is needed")
+    have_daemon = False
+
+parser = argparse.ArgumentParser(description='Deny On Monitoring')
+parser.add_argument('-f', '--file', default='/var/log/suricata/eve.json', help='JSON file to monitor')
+parser.add_argument('-s', '--ipset', default='Sofitel', help='Set IPSET for blacklist')
+parser.add_argument('-v', '--verbose', default=False, action="count", help="Show verbose output, use multiple times increase verbosity")
+parser.add_argument('-l', '--log', default=None, help='File to log output to (default to stdout)')
+if have_daemon:
+    parser.add_argument('-D', '--daemon', default=False, action="store_true", help="Run as unix daemon")
+
+args = parser.parse_args()
+
+if args.verbose >= 3:
+    loglevel=logging.DEBUG
+elif args.verbose >= 2:
+    loglevel=logging.INFO
+elif args.verbose >= 1:
+    loglevel=logging.WARNING
+else:
+    loglevel=logging.ERROR
+
+def setup_logging(args):
+    if args.log:
+        logging.basicConfig(filename=args.log,
+                            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                            level=loglevel)
+    else:
+        logging.basicConfig(level=loglevel)
+
+def main_task(args):
+    setup_logging(args)
+    file = open(args.file, 'r')
+    while 1:
+        where = file.tell()
+        line = file.readline()
+        if not line:
+            # Dodo
+            time.sleep(0.3)
+            file.seek(where)
+        else:
+            try:
+                event = json.loads(line)
+            except json.decoder.JSONDecodeError:
+                time.sleep(0.3)
+                break
+            if event['event_type'] == 'ssh':
+                if 'libssh' in event['ssh']['client']['software_version']:
+                    # Vas-y Francis
+                    call([IPSET, 'add', args.ipset, event['src_ip']]) 
+
+
+
+if have_daemon and args.daemon:
+    with daemon.DaemonContext():
+        main_task(args)
+else:
+    main_task(args)

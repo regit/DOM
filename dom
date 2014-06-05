@@ -78,7 +78,7 @@ def main_task(args):
                 break
             if event['event_type'] == 'ssh':
                 if 'libssh' in event['ssh']['client']['software_version']:
-                    # Vas-y Francis
+                    # Vas-y Francis, c'est bon bon bon
                     call([IPSET, 'add', args.ipset, event['src_ip']]) 
 
 

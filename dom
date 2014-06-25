@@ -75,8 +75,8 @@ def main_task(args):
                 event = json.loads(line)
             except json.decoder.JSONDecodeError:
                 time.sleep(0.3)
-                break
-            if event['event_type'] == 'ssh':
+                continue
+            if event.has_key('event_type') and event['event_type'] == 'ssh':
                 if 'libssh' in event['ssh']['client']['software_version']:
                     # Vas-y Francis, c'est bon bon bon
                     call([IPSET, 'add', args.ipset, event['src_ip']]) 

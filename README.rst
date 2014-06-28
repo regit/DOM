@@ -36,7 +36,7 @@ Full options are available via '-h' option: ::
    -D, --daemon          Run as unix daemon
 
 If you know that regular client are using a software client (like OpenSSH) then
-you can use motif and invert options to trigger an action on all client not using
+you can use ``motif`` and ``invert`` options to trigger an action on all clients not using
 this software: ::
 
  ./dom -f /usr/local/var/log/suricata/eve.json -i -m OpenSSH

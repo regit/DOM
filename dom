@@ -64,10 +64,16 @@ def setup_logging(args):
     else:
         logging.basicConfig(level=loglevel)
 
-def call_ipset(args, src_ip):
+def call_ipset(args, src_ip, value = None):
     if not src_ip in ips_list:
-        call([IPSET, 'add', args.ipset, src_ip])
+        ret = call([IPSET, 'test', args.ipset, src_ip, '-q'])
+        if not ret:
+            ips_list.append(src_ip)
+            return
+        ret = call([IPSET, 'add', args.ipset, src_ip])
         ips_list.append(src_ip)
+        if ret == 0:
+            logging.info("Added %s which use %s" % (src_ip, value))
 
 def main_task(args):
     setup_logging(args)
@@ -89,10 +95,12 @@ def main_task(args):
                 if args.motif in event['ssh']['client']['software_version']:
                     if not args.invert:
                         # Vas-y Francis, c'est bon bon bon
-                        call_ipset(args, event['src_ip'])
+                        call_ipset(args, event['src_ip'],
+                                   value = event['ssh']['client']['software_version'])
                 else:
                     if args.invert:
-                        call_ipset(args, event['src_ip'])
+                        call_ipset(args, event['src_ip'],
+                                   value = event['ssh']['client']['software_version'])
 
 
 

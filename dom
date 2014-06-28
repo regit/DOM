@@ -39,6 +39,7 @@ parser.add_argument('-s', '--ipset', default='Sofitel', help='Set IPSET for blac
 parser.add_argument('-v', '--verbose', default=False, action="count", help="Show verbose output, use multiple times increase verbosity")
 parser.add_argument('-l', '--log', default=None, help='File to log output to (default to stdout)')
 parser.add_argument('-m', '--motif', default='libssh', help='String to look for in event')
+parser.add_argument('-i', '--invert', default=False, action='store_true', help="Invert match: trigger action if not found")
 if have_daemon:
     parser.add_argument('-D', '--daemon', default=False, action="store_true", help="Run as unix daemon")
 
@@ -61,6 +62,9 @@ def setup_logging(args):
     else:
         logging.basicConfig(level=loglevel)
 
+def call_ipset(args, src_ip):
+    call([IPSET, 'add', args.ipset, src_ip])
+
 def main_task(args):
     setup_logging(args)
     file = open(args.file, 'r')
@@ -79,8 +83,12 @@ def main_task(args):
                 continue
             if event.has_key('event_type') and event['event_type'] == 'ssh':
                 if args.motif in event['ssh']['client']['software_version']:
-                    # Vas-y Francis, c'est bon bon bon
-                    call([IPSET, 'add', args.ipset, event['src_ip']]) 
+                    if not args.invert:
+                        # Vas-y Francis, c'est bon bon bon
+                        call_ipset(args, event['src_ip'])
+                else:
+                    if args.invert:
+                        call_ipset(args, event['src_ip'])
 
 
 

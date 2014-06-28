@@ -12,13 +12,13 @@ by using ipset.
 Running DOM
 ===========
 
-Go into the source directory and run ::
+Go into the source directory and run: ::
 
  ./dom -f /usr/local/var/log/suricata/eve.json
 
-Full options are available via '-h' option ::
+Full options are available via '-h' option: ::
 
- usage: dom [-h] [-f FILE] [-s IPSET] [-v] [-l LOG] [-D]
+ usage: dom [-h] [-f FILE] [-s IPSET] [-v] [-l LOG] [-m MOTIF] [-i] [-D]
  
  Deny On Monitoring
  
@@ -30,5 +30,13 @@ Full options are available via '-h' option ::
    -v, --verbose         Show verbose output, use multiple times increase
                          verbosity
    -l LOG, --log LOG     File to log output to (default to stdout)
+   -m MOTIF, --motif MOTIF
+                         String to look for in event
+   -i, --invert          Invert match: trigger action if not found
    -D, --daemon          Run as unix daemon
- 
+
+If you know that regular client are using a software client (like OpenSSH) then
+you can use motif and invert options to trigger an action on all client not using
+this software: ::
+
+ ./dom -f /usr/local/var/log/suricata/eve.json -i -m OpenSSH

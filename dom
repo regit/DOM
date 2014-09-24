@@ -25,6 +25,7 @@ import simplejson as json
 from subprocess import call
 
 IPSET = 'ipset'
+NFT = 'nft'
 
 have_daemon = True
 try:
@@ -38,6 +39,7 @@ ips_list = []
 parser = argparse.ArgumentParser(description='Deny On Monitoring')
 parser.add_argument('-f', '--file', default='/var/log/suricata/eve.json', help='JSON file to monitor')
 parser.add_argument('-s', '--ipset', default='Sofitel', help='Set IPSET for blacklist')
+parser.add_argument('-n', '--nftables', default=None, help='Table where set used as blacklist is')
 parser.add_argument('-v', '--verbose', default=False, action="count", help="Show verbose output, use multiple times increase verbosity")
 parser.add_argument('-l', '--log', default=None, help='File to log output to (default to stdout)')
 parser.add_argument('-m', '--motif', default='libssh', help='String to look for in event')
@@ -64,6 +66,14 @@ def setup_logging(args):
     else:
         logging.basicConfig(level=loglevel)
 
+def call_nft(args, src_ip, value = None):
+    if not src_ip in ips_list:
+        # TODO add test like in ipset
+        ret = call([NFT, 'add', 'element', args.nftables, args.ipset, '{', src_ip, '}'])
+        ips_list.append(src_ip)
+        if ret == 0:
+            logging.info("Added %s which use %s" % (src_ip, value))
+
 def call_ipset(args, src_ip, value = None):
     if not src_ip in ips_list:
         ret = call([IPSET, 'test', args.ipset, src_ip, '-q'])
@@ -78,6 +88,10 @@ def call_ipset(args, src_ip, value = None):
 def main_task(args):
     setup_logging(args)
     file = open(args.file, 'r')
+    if args.nftables:
+        call_add = call_nft
+    else:
+        call_add = call_ipset
     while 1:
         where = file.tell()
         line = file.readline()
@@ -95,11 +109,11 @@ def main_task(args):
                 if args.motif in event['ssh']['client']['software_version']:
                     if not args.invert:
                         # Vas-y Francis, c'est bon bon bon
-                        call_ipset(args, event['src_ip'],
+                        call_add(args, event['src_ip'],
                                    value = event['ssh']['client']['software_version'])
                 else:
                     if args.invert:
-                        call_ipset(args, event['src_ip'],
+                        call_add(args, event['src_ip'],
                                    value = event['ssh']['client']['software_version'])
 
 

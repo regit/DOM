@@ -22,6 +22,7 @@ import logging
 import os
 import time
 import simplejson as json
+import re
 from subprocess import call
 
 IPSET = 'ipset'
@@ -92,6 +93,7 @@ def main_task(args):
         call_add = call_nft
     else:
         call_add = call_ipset
+    versionre = re.compile(args.motif)
     while 1:
         where = file.tell()
         line = file.readline()
@@ -106,7 +108,7 @@ def main_task(args):
                 time.sleep(0.3)
                 continue
             if event.has_key('event_type') and event['event_type'] == 'ssh':
-                if args.motif in event['ssh']['client']['software_version']:
+                if versionre.match(event['ssh']['client']['software_version']):
                     if not args.invert:
                         # Vas-y Francis, c'est bon bon bon
                         call_add(args, event['src_ip'],
